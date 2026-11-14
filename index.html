@@ -109,7 +109,7 @@ canvas.frame{border-radius:16px}
 .chip i{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:.68rem;font-weight:800;background:var(--line);color:var(--card);transition:background .3s,transform .3s var(--ease)}
 .chip.ok{color:var(--ink)} .chip.ok i{background:var(--good);transform:scale(1.08)}
 .chip.bad{color:var(--bad)} .chip.bad i{background:var(--bad)}
-.dock{position:sticky;bottom:10px;z-index:10;display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:24px;background:var(--bar);backdrop-filter:saturate(1.6) blur(16px);-webkit-backdrop-filter:saturate(1.6) blur(16px);box-shadow:var(--shadow),var(--shadow-up);border:1px solid var(--line)}
+.dock{position:sticky;bottom:10px;top:auto;z-index:10;display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:24px;background:var(--bar);backdrop-filter:saturate(1.6) blur(16px);-webkit-backdrop-filter:saturate(1.6) blur(16px);box-shadow:var(--shadow),var(--shadow-up);border:1px solid var(--line)}
 .dock .msg{flex:1;min-width:0;font-size:.92rem;line-height:1.35}
 .dock .msg b{display:block;font-size:1rem}
 .recbtn{width:68px;height:68px;flex:none;border-radius:50%;padding:0;border:0;background:transparent;display:grid;place-items:center}
@@ -209,19 +209,25 @@ a{color:var(--accent)}
       <p class="small" id="g-line"></p>
     </div>
     <div class="stagewrap"><canvas id="stage" width="480" height="270" aria-label="Camera picture. Tap the moving object."></canvas><span class="badge" id="badge">Sample</span></div>
-    <div class="row" role="group" aria-label="Where the video comes from">
-      <button type="button" class="primary" id="b-sim">Try a simulation</button>
-      <label class="filebtn" id="l-rec">Record a clip<input type="file" id="f-rec" accept="video/*" capture="environment"></label>
-      <button type="button" id="b-cam">Live camera</button>
-      <label class="filebtn">Choose a clip<input type="file" id="f-pick" accept="video/*"></label>
-    </div>
-    <p class="small" id="camnote" hidden>The live camera is switched off inside Claude. “Record a clip” opens your phone’s camera instead, and the app analyses the clip when you come back.</p>
-    <p class="small" id="hint" aria-live="polite"></p>
     <p class="err" id="gerr" role="alert" hidden></p>
+    <div class="row" id="srcrow" role="group" aria-label="Where the video comes from">
+      <button type="button" class="primary" id="b-cam">Use the camera</button>
+      <label class="filebtn" id="l-rec">Record a clip<input type="file" id="f-rec" accept="video/*" capture="environment"></label>
+      <label class="filebtn">Choose a clip<input type="file" id="f-pick" accept="video/*"></label>
+      <button type="button" id="b-sim">Try a simulation</button>
+    </div>
+    <p class="small" id="camnote" hidden>The live camera is switched off inside Claude. Use the simulation here, or open the app from its own web address.</p>
+    <p class="small" id="hint" aria-live="polite"></p>
+    <div class="dock" id="dock" hidden>
+      <button type="button" class="recbtn" id="b-rec" disabled aria-label="Record">
+        <svg viewBox="0 0 68 68" aria-hidden="true"><circle class="trk" cx="34" cy="34" r="30"/><circle class="prog" id="ring" cx="34" cy="34" r="30" stroke-dasharray="188.5" stroke-dashoffset="188.5"/></svg>
+        <span class="core" id="core"></span>
+      </button>
+      <div class="msg" aria-live="polite"><b id="rectitle">Getting ready</b><span id="recmsg"></span><div class="row" style="gap:14px"><button type="button" class="link" id="b-any" hidden>Record anyway</button><button type="button" class="link" id="b-src">Start over</button></div></div>
+    </div>
     <div id="checks-sec" class="view" style="gap:14px" hidden>
-      <div class="chips" id="checks" aria-live="polite"></div>
-      <section class="card" style="padding:14px 18px"><details id="opts"><summary>Options</summary><div class="inner">
-        <label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="handsfree" checked><span>Start by itself when every check passes<br><span class="small">Counts down 3, 2, 1, then records. Untick to press the button yourself.</span></span></label>
+      <section class="card" style="padding:14px 18px"><details id="opts"><summary>More options</summary><div class="inner">
+        <label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="handsfree" checked><span>Start recording by itself<br><span class="small">Counts down 3, 2, 1 when the shot is ready. Untick to press the button yourself.</span></span></label>
         <div class="row">
           <button type="button" id="m-obj" aria-pressed="true">Tap the object</button>
           <button type="button" id="m-scale" aria-pressed="false">Mark a known length</button>
@@ -240,15 +246,8 @@ a{color:var(--accent)}
       </div></details></section>
     </div>
     <section class="card" style="padding:14px 18px" aria-labelledby="h-setup">
-      <details id="tipsbox" open><summary id="h-setup">Set up the shot</summary><div class="inner"><ul class="tips" id="tips"></ul></div></details>
+      <details id="tipsbox" open><summary id="h-setup">Tips for a good shot</summary><div class="inner"><ul class="tips" id="tips"></ul></div></details>
     </section>
-    <div class="dock" id="dock" hidden>
-      <button type="button" class="recbtn" id="b-rec" disabled aria-label="Record">
-        <svg viewBox="0 0 68 68" aria-hidden="true"><circle class="trk" cx="34" cy="34" r="30"/><circle class="prog" id="ring" cx="34" cy="34" r="30" stroke-dasharray="188.5" stroke-dashoffset="188.5"/></svg>
-        <span class="core" id="core"></span>
-      </button>
-      <div class="msg" aria-live="polite"><b id="rectitle">Getting ready</b><span id="recmsg"></span><div><button type="button" class="link" id="b-any" hidden>Record anyway</button></div></div>
-    </div>
   </div>
 
   <div class="view" id="v-result" hidden>
@@ -707,8 +706,8 @@ function drawScene(id,t,ctx,w,h,opt){
     $('g-name').textContent=exp.name;$('g-line').textContent=exp.line;
     $('tips').innerHTML=exp.tips.map(t=>'<li>'+esc(t)+'</li>').join('');$('tipsbox').open=true;
     $('b-cam').hidden=!!exp.lapse||camOff;$('camnote').hidden=!camOff||!!exp.lapse;$('lapsewrap').hidden=!exp.lapse;
-    $('checks-sec').hidden=true;$('dock').hidden=true;$('badge').textContent='Sample';gerr('');
-    hint(exp.free?'This is only an example. Any single moving object works: the app looks for whichever formula fits.':'This is what a good recording looks like. Start with the simulation to see the whole flow.');}
+    $('checks-sec').hidden=true;$('dock').hidden=true;$('srcrow').hidden=false;$('badge').textContent='Sample';gerr('');live.banner='';
+    hint(exp.free?'This is only an example. Any single moving object works.':'This is what a good recording looks like.');}
   function stopSource(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;}
     if(clip&&clip.url){URL.revokeObjectURL(clip.url);}clip=null;mode=null;trk=null;rec=null;scalePts=[];hist=[];override=false;sim.released=false;busy=false;userPicked=false;
     auto.since=0;auto.count=0;auto.block=false;chipSig='';$('lenwrap').hidden=true;setMark('obj');}
@@ -724,7 +723,6 @@ function drawScene(id,t,ctx,w,h,opt){
   const zoneR=()=>0.2*Math.max(W,H);
   function overlay(){
     const mark=css('--mark')||'#d6336c';
-    if(!rec&&mode!=='clip'&&!exp.free)ghost();
     sctx.lineWidth=2;sctx.strokeStyle=mark;sctx.fillStyle=mark;
     if(scalePts.length){sctx.beginPath();scalePts.forEach(p=>{sctx.moveTo(p.x+5,p.y);sctx.arc(p.x,p.y,5,0,7);});sctx.stroke();
       if(scalePts.length===2){sctx.setLineDash([5,4]);sctx.beginPath();sctx.moveTo(scalePts[0].x,scalePts[0].y);sctx.lineTo(scalePts[1].x,scalePts[1].y);sctx.stroke();sctx.setLineDash([]);}}
@@ -732,6 +730,8 @@ function drawScene(id,t,ctx,w,h,opt){
     if(path){sctx.lineWidth=3;sctx.lineJoin='round';sctx.beginPath();let st=false;for(const p of path){if(!p)continue;if(!st){sctx.moveTo(p.x,p.y);st=true;}else sctx.lineTo(p.x,p.y);}sctx.stroke();sctx.lineWidth=2;}
     if(trk){const o=trk.pos();if(trk.lostRun()<3){const rr=o.r0+8+(reduce?0:2*Math.sin(performance.now()/260));sctx.strokeStyle='#fff';sctx.lineWidth=4;sctx.beginPath();sctx.arc(o.x,o.y,rr,0,7);sctx.stroke();sctx.strokeStyle=mark;sctx.lineWidth=2;sctx.beginPath();sctx.arc(o.x,o.y,rr,0,7);sctx.stroke();}}
     if(rec){sctx.fillStyle='#e0332b';sctx.beginPath();sctx.arc(18,18,7,0,7);sctx.fill();}
+    if(live.banner&&mode&&!(auto.count>0&&!rec)){const msg=live.banner;sctx.font='700 '+Math.round(Math.max(15,Math.min(W,H)*0.062))+'px Figtree,system-ui,sans-serif';sctx.textAlign='center';sctx.textBaseline='middle';
+      const tw=Math.min(W-16,sctx.measureText(msg).width+30),th=Math.max(30,Math.min(W,H)*0.12);sctx.fillStyle=rec?'rgba(200,35,30,.85)':'rgba(0,0,0,.66)';sctx.beginPath();if(sctx.roundRect)sctx.roundRect(W/2-tw/2,H-th-10,tw,th,th/2);else sctx.rect(W/2-tw/2,H-th-10,tw,th);sctx.fill();sctx.fillStyle='#fff';sctx.fillText(msg,W/2,H-th/2-10,W-30);}
     if(auto.count>0&&!rec){sctx.fillStyle='rgba(0,0,0,.35)';sctx.fillRect(0,0,W,H);sctx.fillStyle='#fff';sctx.font='800 '+Math.round(H*0.42)+'px Figtree,system-ui,sans-serif';sctx.textAlign='center';sctx.textBaseline='middle';sctx.fillText(String(auto.count),W/2,H/2);}
   }
   function drawSample(now){const t=reduce?exp.D*0.45:(now/1000)%(exp.D+0.9);drawScene(exp.id,t,sctx,W,H,{pretty:true});ghost();}
@@ -764,14 +764,23 @@ function drawScene(id,t,ctx,w,h,opt){
         if(ok){vx=(nx-px)/(1+lostRun);vy=(ny-py)/(1+lostRun);px=nx;py=ny;lostRun=0;return {x:px,y:py};}
         lostRun++;if(lostRun<8){px+=vx;py+=vy;}return null;}};
   }
-  // find the object without a tap: the most strongly coloured small thing that stands apart from the rest
+  // find the object without a tap. Two passes: strongly coloured things, then colours that are rare in the picture
+  // (a white ball on a dark wall, a dark puck on a light table). Things inside the dashed start circle are preferred.
   function autoPick(d){
-    const cand=[];for(let y=4;y<H-4;y+=4)for(let x=4;x<W-4;x+=4){const i=(y*W+x)*4;const mx=Math.max(d[i],d[i+1],d[i+2]),mn=Math.min(d[i],d[i+1],d[i+2]);if(mx-mn>70&&mx>80)cand.push([mx-mn,x,y]);}
+    const sp=exp.pos(0);const zx=sp.x*W/640,zy=sp.y*H/360,zr=zoneR();const boost=()=>1;
+    const tryAt=pt=>{try{const t=makeTracker(d,W,H,pt);if(t.distinct&&t.area0>=10&&t.area0<=5000)return t;}catch(e){}return null;};
+    const cand=[];for(let y=4;y<H-4;y+=4)for(let x=4;x<W-4;x+=4){const i=(y*W+x)*4;const mx=Math.max(d[i],d[i+1],d[i+2]),mn=Math.min(d[i],d[i+1],d[i+2]);if(mx-mn>70&&mx>80)cand.push([(mx-mn)*boost(x,y),x,y,mx-mn]);}
     cand.sort((a,b)=>b[0]-a[0]);const tried=[];
-    for(const [c,x,y] of cand){if(tried.some(t=>Math.abs(t[0]-x)<28&&Math.abs(t[1]-y)<28))continue;tried.push([x,y]);if(tried.length>6)break;
-      // move to the middle of the coloured patch before locking on, so the colour sample is not taken at its edge
-      let sx=0,sy=0,n=0;for(const q of cand){if(q[0]>=0.8*c&&Math.abs(q[1]-x)<=16&&Math.abs(q[2]-y)<=16){sx+=q[1];sy+=q[2];n++;}}
-      for(const pt of [{x:sx/n,y:sy/n},{x,y}]){try{const t=makeTracker(d,W,H,pt);if(t.distinct&&t.area0>=12&&t.area0<=5000)return t;}catch(e){}}}
+    for(const [s,x,y,c] of cand){if(tried.some(t=>Math.abs(t[0]-x)<28&&Math.abs(t[1]-y)<28))continue;tried.push([x,y]);if(tried.length>6)break;
+      let sx=0,sy=0,n=0;for(const q of cand){if(q[3]>=0.8*c&&Math.abs(q[1]-x)<=16&&Math.abs(q[2]-y)<=16){sx+=q[1];sy+=q[2];n++;}}
+      for(const pt of [{x:sx/n,y:sy/n},{x,y}]){const t=tryAt(pt);if(t)return t;}}
+    const bins=new Uint32Array(512);let n=0;const bin=i=>((d[i]>>5)<<6)|((d[i+1]>>5)<<3)|(d[i+2]>>5);
+    for(let y=1;y<H;y+=3)for(let x=1;x<W;x+=3){bins[bin((y*W+x)*4)]++;n++;}
+    const cw=16,gx=Math.ceil(W/cw),gy=Math.ceil(H/cw);const cnt=new Float32Array(gx*gy),sxs=new Float32Array(gx*gy),sys=new Float32Array(gx*gy);
+    for(let y=1;y<H;y+=3)for(let x=1;x<W;x+=3){if(bins[bin((y*W+x)*4)]<0.012*n){const c=Math.floor(y/cw)*gx+Math.floor(x/cw);cnt[c]++;sxs[c]+=x;sys[c]+=y;}}
+    const cells=[];for(let c=0;c<gx*gy;c++){if(cnt[c]>=3){const x=sxs[c]/cnt[c],y=sys[c]/cnt[c];if(x<8||y<8||x>W-8||y>H-8)continue;cells.push([cnt[c]*boost(x,y),x,y]);}}
+    cells.sort((a,b)=>b[0]-a[0]);
+    for(const [s,x,y] of cells.slice(0,10)){const t=tryAt({x,y});if(t)return t;}
     return null;
   }
 
@@ -788,40 +797,31 @@ function drawScene(id,t,ctx,w,h,opt){
   function getScale(){if(scalePts.length===2){const m=Number($('len').value),pxd=Math.hypot(scalePts[0].x-scalePts[1].x,scalePts[0].y-scalePts[1].y);if(m>0&&pxd>=5)return {k:m/pxd,unit:'m'};}return {k:1,unit:'px'};}
   function evalChecks(){
     const c=[];const isLive=mode==='cam'||mode==='sim';
+    let ook=false,ob='Tap the object',om=isLive?'Tap the thing you want to follow in the picture.':'Tap the thing you want to follow in the first frame.';
+    if(trk){const seen=hist.length?hist.reduce((a,b)=>a+b,0)/hist.length:1;
+      if(isLive&&seen<0.7){ob='Tap the object again';om='The app lost sight of it.';}else{ook=true;om='';}}
+    c.push({k:'object',req:true,ok:ook,b:ob,m:om});
     if(isLive){
       const steady=live.motion<0.12&&(mode!=='cam'||live.rot==null||live.rot<6);
-      c.push({k:'steady',s:'Steady',req:true,ok:steady,m:steady?'Still.':'The picture is moving. Prop the phone against something or use a stand.'});
-      if(mode==='cam'&&live.grav){const g=Math.hypot(live.grav[0],live.grav[1],live.grav[2])||1;const fwd=Math.abs(live.grav[2])/g,roll=Math.min(Math.abs(live.grav[0]),Math.abs(live.grav[1]))/g;const ok=fwd<0.25&&roll<0.12;
-        c.push({k:'level',s:'Level',req:true,ok,m:ok?'Upright and level.':fwd>=0.25?'Stand the phone upright so it faces the scene squarely.':'Straighten the phone so the frame is level.'});}
-      const b=live.bright;const lok=b>55&&b<238;
-      c.push({k:'light',s:'Light',req:true,ok:lok,m:lok?'Good.':b<=55?'Too dark. Add light or move near a window.':'Too bright. Turn away from the light source.'});
-    }
-    let ook=false,om=isLive?'Looking for the object. Tap it in the picture if it is not found.':'Tap the object in the first frame.';
-    if(trk){const seen=hist.length?hist.reduce((a,b)=>a+b,0)/hist.length:1;
-      if(isLive&&seen<0.7)om='Lost the object. Tap it again.';else if(!trk.distinct)om='Other things in view share its colour. Use a plainer background or a brighter object.';else{ook=true;om='Locked on.';}}
-    c.push({k:'object',s:'Object',req:true,ok:ook,m:om});
-    if(isLive){let fok=false,fm='Select the object first.';
-      if(trk){const o=trk.pos();const mx=0.06*W,my=0.06*H;const sp=exp.pos(0);const zx=sp.x*W/640,zy=sp.y*H/360;
-        if(o.x<mx||o.y<my||o.x>W-mx||o.y>H-my)fm='The object is at the edge. Move back so there is room around it.';
-        else if(exp.zone==='start'&&Math.hypot(o.x-zx,o.y-zy)>zoneR())fm='Start the object inside the dashed circle so the whole path fits.';
-        else{fok=true;fm='There is room for the whole path.';}}
-      c.push({k:'frame',s:'In frame',req:true,ok:fok,m:fm});}
-    const sc=getScale();
-    c.push({k:'scale',s:sc.unit==='m'?'Length set':'Length (optional)',req:false,ok:sc.unit==='m',na:sc.unit!=='m',m:''});
+      c.push({k:'steady',req:true,ok:steady,b:'Hold the phone still',m:'Prop it against something or use a stand.'});
+      if(mode==='cam'&&live.grav){const g=Math.hypot(live.grav[0],live.grav[1],live.grav[2])||1;const fwd=Math.abs(live.grav[2])/g,roll=Math.min(Math.abs(live.grav[0]),Math.abs(live.grav[1]))/g;
+        c.push({k:'level',req:true,ok:fwd<0.3&&roll<0.15,b:fwd>=0.3?'Stand the phone upright':'Straighten the phone',m:'It should face the scene squarely.'});}
+      const b=live.bright;c.push({k:'light',req:true,ok:b>55&&b<238,b:b<=55?'More light needed':'Too bright',m:b<=55?'Turn on a light or move near a window.':'Turn away from the light source.'});
+      let fok=true;if(trk){const o=trk.pos();const mx=0.05*W,my=0.05*H;fok=!(o.x<mx||o.y<my||o.x>W-mx||o.y>H-my);}
+      c.push({k:'frame',req:true,ok:fok,b:'Move back a little',m:'The object is at the edge of the picture.'});}
     return c;
   }
   const RING=188.5;
   function updateChecks(){
-    const c=evalChecks();const sig=c.map(x=>x.k+(x.na?'n':x.ok?'o':'b')+x.s).join('|');
-    if(sig!==chipSig){chipSig=sig;$('checks').innerHTML=c.map(x=>'<span class="chip '+(x.na?'na':x.ok?'ok':'bad')+'"><i>'+(x.na?'':x.ok?'✓':'!')+'</i>'+esc(x.s)+'</span>').join('');}
-    const req=c.filter(x=>x.req);const failing=req.filter(x=>!x.ok);const ready=!failing.length;const br=$('b-rec'),core=$('core');
+    const req=evalChecks();const failing=req.filter(x=>!x.ok);const ready=!failing.length;const br=$('b-rec'),core=$('core');
     let frac=req.length?(req.length-failing.length)/req.length:0,title='',msg='',dis=true,cls='',lab='',any=false;
     if(mode==='clip'){cls='clip';lab=busy?'…':'Go';dis=busy||!ready;frac=busy?(clip&&clip.prog||0):frac;
-      title=busy?'Tracking the clip':ready?'Ready to track':'Tap the object';msg=busy?'Following the object frame by frame.':ready?'Press Go. Steadiness, light and framing are checked on the clip itself.':'Tap the object in the first frame to continue.';}
-    else if(rec){cls='recording';dis=false;frac=Math.min(1,(performance.now()/1000-recT0)/exp.maxRec);title='Recording';msg=mode==='sim'?'Following the simulated motion.':'Let the object go now. It stops by itself when the object leaves the frame.';}
-    else if(auto.count>0){lab=String(auto.count);dis=false;title='Starting in '+auto.count;msg=mode==='sim'?'Recording starts by itself.':'Get ready to let the object go.';}
+      title=busy?'Following the object':ready?'Press Go':'Tap the object';msg=busy?'':ready?'Or tap a different object first.':'Tap the thing you want to follow in the picture.';}
+    else if(rec){cls='recording';dis=false;frac=Math.min(1,(performance.now()/1000-recT0)/exp.maxRec);title=mode==='sim'?'Recording':'Recording. Let go now';msg='It stops by itself. Tap the button to stop sooner.';}
+    else if(auto.count>0){lab=String(auto.count);dis=false;title='Starting in '+auto.count;msg='';}
     else{dis=!ready;cls=ready?'ready':'';any=!ready&&!!trk;
-      title=ready?'All checks pass':'Record is locked';msg=ready?($('handsfree').checked&&!auto.block?'Hold still. The countdown starts by itself.':'Press the red button, then let the object go.'):failing[0].m;}
+      title=ready?($('handsfree').checked&&!auto.block?'Hold still':'Press the red button'):failing[0].b;msg=ready?($('handsfree').checked&&!auto.block?'Recording starts by itself.':'Then let the object go.'):failing[0].m;}
+    live.banner=mode==='clip'&&busy?'':title;
     br.className='recbtn '+cls;br.disabled=dis;core.textContent=lab;$('ring').setAttribute('stroke-dashoffset',String(RING*(1-frac)));
     br.setAttribute('aria-label',mode==='clip'?'Track this clip':rec?'Stop recording':'Record');
     $('rectitle').textContent=title;$('recmsg').textContent=msg;$('b-any').hidden=!any;
@@ -832,24 +832,24 @@ function drawScene(id,t,ctx,w,h,opt){
   $('len').addEventListener('input',()=>updateChecks());
   stage.addEventListener('click',e=>{
     if(mode===null||busy||rec)return;const r=stage.getBoundingClientRect();const p={x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};
-    if(markMode==='scale'){if(scalePts.length>=2)scalePts=[];scalePts.push(p);$('lenwrap').hidden=scalePts.length<2;if(scalePts.length===2){setMark('obj');hint('Length marked. Type the real length under Options.');}}
+    if(markMode==='scale'){if(scalePts.length>=2)scalePts=[];scalePts.push(p);$('lenwrap').hidden=scalePts.length<2;if(scalePts.length===2){setMark('obj');hint('Length marked. Type the real length below.');}}
     else{const d=mode==='clip'?fctx.getImageData(0,0,W,H).data:lastData;if(!d)return;userPicked=true;auto.block=false;auto.since=0;
-      try{trk=makeTracker(d,W,H,p);hist=[];gerr('');if(clip){clip.tap=p;clip.path=null;}hint('Object marked. Tap again to move the mark.');}catch(er){trk=null;gerr(er.message);}}
+      try{trk=makeTracker(d,W,H,p);hist=[];gerr('');if(clip){clip.tap=p;clip.path=null;}}catch(er){trk=null;gerr(er.message);}}
     if(mode==='clip')redrawClip();updateChecks();});
 
   // ---------- live sources: camera and practice simulation
   function beginLive(m){mode=m;trk=null;rec=null;scalePts=[];hist=[];prev=null;override=false;live.motion=0;sim.released=false;lastData=null;userPicked=false;frameNo=0;
     auto.since=0;auto.count=0;auto.block=false;chipSig='';
-    $('checks-sec').hidden=false;$('dock').hidden=false;$('tipsbox').open=false;$('simrow').hidden=m!=='sim';$('cliprow').hidden=true;$('badge').textContent=m==='sim'?'Simulation':'Live';gerr('');
+    $('checks-sec').hidden=false;$('dock').hidden=false;$('srcrow').hidden=true;$('camnote').hidden=true;$('tipsbox').open=false;$('simrow').hidden=m!=='sim';$('cliprow').hidden=true;$('badge').textContent=m==='sim'?'Simulation':'Live';gerr('');
     $('s-shake').checked=false;$('s-dim').checked=false;setMark('obj');
     if(m==='sim'){scalePts=[{x:500*W/640,y:344*H/360},{x:600*W/640,y:344*H/360}];$('len').value=1;$('lenwrap').hidden=false;}
-    hint(m==='sim'?'The app finds the object, checks the shot and records by itself. The 1 m bar on the ground is already marked.':'Point the camera at the scene. The app looks for the object by itself.');updateChecks();}
+    hint('');updateChecks();}
   function processLive(tsec){
     if(mode==='cam'){if(video.readyState<2)return;pctx.drawImage(video,0,0,W,H);}
     else{sim.t=sim.released?Math.max(0,tsec-sim.t0):0;drawScene(exp.id,sim.t,pctx,W,H,{shake:$('s-shake').checked,dim:$('s-dim').checked});}
     const d=pctx.getImageData(0,0,W,H).data;lastData=d;measure(d);frameNo++;
     if(!rec&&!userPicked&&frameNo%10===3){const seen=hist.length>=10?hist.reduce((a,b)=>a+b,0)/hist.length:1;
-      if(!trk||seen<0.3){const t=autoPick(d);if(t){trk=t;hist=[];hint('Found the object. Tap something else in the picture if this is wrong.');}else if(seen<0.3)trk=null;}}
+      if(!trk||seen<0.3){const t=autoPick(d);if(t){trk=t;hist=[];}else if(seen<0.3)trk=null;}}
     let p=null;if(trk){p=trk.step(d);hist.push(p?1:0);if(hist.length>12)hist.shift();}
     if(rec){rec.t.push(tsec);rec.pts.push(p?{x:p.x,y:p.y}:null);if(live.motion>=0.12)rec.shake++;if(p)rec.found++;
       const el=tsec-rec.t[0];
@@ -887,6 +887,7 @@ function drawScene(id,t,ctx,w,h,opt){
   function startRec(){if(!trk||rec)return;nctx.drawImage(proc,0,0);rec={t:[],pts:[],shake:0,found:0};recT0=performance.now()/1000;auto.count=0;if(mode==='sim'){sim.released=true;sim.t0=performance.now()/1000+0.5;}updateChecks();}
   $('b-rec').addEventListener('click',()=>{if(mode==='clip'){runClip();return;}if(rec)finishLive();else{auto.since=0;auto.count=0;startRec();}});
   $('b-any').addEventListener('click',()=>{override=true;startRec();});
+  $('b-src').addEventListener('click',()=>{if(exp)openGuide(exp.id);});
   $('handsfree').addEventListener('change',()=>{auto.since=0;auto.count=0;auto.block=false;updateChecks();});
   function finishLive(){
     const r=rec;rec=null;sim.released=false;const wasOverride=override;override=false;auto.since=0;auto.count=0;
@@ -919,10 +920,10 @@ function drawScene(id,t,ctx,w,h,opt){
     let c;try{c=await openClip(file);}catch(e){gerr(e.message);hint('');return;}
     clip=c;mode='clip';setDims(c.v.videoWidth,c.v.videoHeight);trk=null;scalePts=[];chipSig='';
     const dur=Math.max(0.1,c.duration-0.04);for(const id of ['c-start','c-end'])$(id).max=dur.toFixed(2);$('c-start').value=0;$('c-end').value=Math.min(dur,12).toFixed(2);
-    $('checks-sec').hidden=false;$('dock').hidden=false;$('tipsbox').open=false;$('simrow').hidden=true;$('cliprow').hidden=false;$('badge').textContent='Clip';
+    $('checks-sec').hidden=false;$('dock').hidden=false;$('srcrow').hidden=true;$('camnote').hidden=true;$('tipsbox').open=false;$('simrow').hidden=true;$('cliprow').hidden=false;$('badge').textContent='Clip';
     await showClipStart();if(c!==clip)return;
     let found=false;if(!noAuto){try{const t=autoPick(fctx.getImageData(0,0,W,H).data);if(t){trk=t;const o=t.pos();c.tap={x:o.x,y:o.y};found=true;}}catch(e){}}
-    hint(found?'Found the object. Tap something else in the picture if this is wrong.':'Tap the object in this first frame. Trim the start and end under Options if needed.');
+    hint('');
     redrawClip();updateChecks();
     if(found&&$('handsfree').checked&&!exp.lapse)runClip();}
   async function showClipStart(){if(!clip)return;const c=clip;await seek(c.v,Number($('c-start').value));if(c!==clip)return;fctx.drawImage(c.v,0,0,W,H);clipLabels();redrawClip();}
