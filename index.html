@@ -195,8 +195,8 @@ a{color:var(--accent)}
       <details><summary id="h-how">How it works</summary><div class="inner">
       <ol class="how">
         <li>Tap a tile. If yours is not listed, use “Any moving object”.</li>
-        <li>The app finds the object by itself and checks the shot: phone steady, enough light, object easy to follow, whole path in frame.</li>
-        <li>When every check passes it counts down and records. It follows the object frame by frame and builds a table of time and position.</li>
+        <li>The app checks the shot first: phone steady, upright, enough light. When it is ready it counts down and records.</li>
+        <li>After recording, you tap the object once on the recorded picture. The app follows it frame by frame and builds a table of time and position.</li>
         <li>It looks for the simplest formula that fits, then shows a replay, a 3D view, graphs, forces and energy, and a time slider to predict where the object will be.</li>
         <li>If nothing fits cleanly it gives a rough result with a warning, or says there is no formula and what to change. It does not guess.</li>
       </ol></div></details>
@@ -209,6 +209,7 @@ a{color:var(--accent)}
       <p class="small" id="g-line"></p>
     </div>
     <div class="stagewrap"><canvas id="stage" width="480" height="270" aria-label="Camera picture. Tap the moving object."></canvas><span class="badge" id="badge">Sample</span></div>
+    <label class="fld" id="rvwrap" hidden>Recorded frames<input type="range" id="rv" min="0" max="1" step="1" value="0"></label>
     <p class="err" id="gerr" role="alert" hidden></p>
     <div class="row" id="srcrow" role="group" aria-label="Where the video comes from">
       <button type="button" class="primary" id="b-cam">Use the camera</button>
@@ -252,7 +253,7 @@ a{color:var(--accent)}
 
   <div class="view" id="v-result" hidden>
     <div class="view" id="resbody"></div>
-    <div class="row"><button type="button" class="primary" id="r-again">Record again</button><button type="button" id="r-home">All experiments</button></div>
+    <div class="row"><button type="button" class="primary" id="r-again">Record again</button><button type="button" id="r-pick" hidden>Pick the object again</button><button type="button" id="r-home">All experiments</button></div>
   </div>
 
   <div class="view" id="v-table" hidden>
@@ -356,10 +357,10 @@ function restTrim(t,x,y,thr){
   if(k>=2){
     const mx=median(x.slice(0,k)),my=median(y.slice(0,k));let rest=true;
     for(let i=0;i<k;i++)if(Math.hypot(x[i]-mx,y[i]-my)>thr)rest=false;
-    if(rest){let i=0;while(i<n&&Math.hypot(x[i]-mx,y[i]-my)<=thr)i++;i0=Math.max(0,i-1);}
+    if(rest){let i=0;while(i<n&&Math.hypot(x[i]-mx,y[i]-my)<=thr)i++;i0=Math.min(n-1,i);}
     const ex=median(x.slice(n-k)),ey=median(y.slice(n-k));rest=true;
     for(let i=n-k;i<n;i++)if(Math.hypot(x[i]-ex,y[i]-ey)>thr)rest=false;
-    if(rest){let i=n-1;while(i>=0&&Math.hypot(x[i]-ex,y[i]-ey)<=thr)i--;i1=Math.min(n-1,i+1);}
+    if(rest){let i=n-1;while(i>=0&&Math.hypot(x[i]-ex,y[i]-ey)<=thr)i--;i1=Math.max(0,i);}
   }
   if(i1-i0<7){i0=0;i1=n-1;}
   return [i0,i1];
@@ -456,7 +457,7 @@ function analyse(expId,t,x,y,o){
   const diag=Math.hypot(rangeOf(x),rangeOf(y));const thr=Math.max(2*o.px,0.02*diag);const minPx=3*o.px;
   let [i0,i1]=restTrim(t,x,y,thr);
   // a ball leaving a table: start where it first drops, so the roll along the table is not mixed into the fall
-  if(o.sub==='edge'){const k=Math.min(5,t.length);const y0=median(y.slice(0,k));let i=0;while(i<t.length&&Math.abs(y[i]-y0)<=thr)i++;if(i>1&&i1-(i-1)>=8)i0=Math.max(i0,i-1);}
+  if(o.sub==='edge'){const k=Math.min(5,t.length);const y0=median(y.slice(0,k));let i=0;while(i<t.length&&Math.abs(y[i]-y0)<=thr)i++;if(i>1&&i1-i>=8)i0=Math.max(i0,i);}
   const mk=loose=>{const generic=(tt,xx,yy)=>fitXY(tt,xx,yy,minPx,loose);
     const withFallback=f=>(tt,xx,yy)=>{const r=f(tt,xx,yy,minPx,loose);return r.ok?r:generic(tt,xx,yy);};
     return expId==='ramp'?withFallback(fitRamp):expId==='spin'?withFallback(fitSpin):expId==='bounce'?withFallback(fitBounceXY):generic;};
@@ -523,19 +524,19 @@ function bounceY(t){const floor=325;let h=260;const t1=Math.sqrt(2*h/G_PX);if(t<
 const GROUPS=['Throwing and falling','Swinging and bobbing','Rolling and sliding','Turning','Slow change','Anything else'];
 const EXPS=[
  // ---- throwing and falling
- {id:'toss',g:0,name:'Ball toss',line:'Throw a ball across the frame. Get its arc, launch speed and gravity.',D:1.59,maxRec:6,zone:'start',
+ {id:'toss',g:0,name:'Ball toss',line:'Throw a ball across the frame. Get its arc, launch speed and gravity.',D:1.59,maxRec:5,zone:'start',
   pos:t=>{t=Math.min(t,1.59);return {x:60+320*t,y:325-(780*t-490*t*t)};},
   tips:['Stand side-on, 3 to 4 m back, so the whole arc fits.','Use a bright ball against a plain wall.','Throw across the frame, not toward the camera.','Put a metre stick or a door in the same plane as the throw for real units.']},
- {id:'hoop',g:0,as:'toss',name:'Basketball shot',line:'Film a shot from the side. Get the release speed, angle and peak height.',D:1.05,maxRec:6,zone:'start',
+ {id:'hoop',g:0,as:'toss',name:'Basketball shot',line:'Film a shot from the side. Get the release speed, angle and peak height.',D:1.05,maxRec:5,zone:'start',
   pos:t=>({x:110+260*t,y:250-(640*t-490*t*t)}),
   tips:['Film from the side of the court so the ball crosses the frame.','Keep the shooter and the hoop both in view.','An orange ball against a plain wall or sky tracks best.','The hoop is 3.05 m high: mark from floor to rim for real units.']},
- {id:'drop',g:0,name:'Dropped object',line:'Let something fall. Measure gravity from the fall.',D:0.76,maxRec:5,zone:'start',
+ {id:'drop',g:0,name:'Dropped object',line:'Let something fall. Measure gravity from the fall.',D:0.76,maxRec:4,zone:'start',
   pos:t=>({x:320,y:Math.min(325,40+490*t*t)}),
   tips:['Hold the object at the top of the frame and let go without pushing.','A heavy, small object works best. Paper and feathers drift.','Leave at least 1.5 m of fall in view.','Mark a known length for a gravity reading in m/s².']},
- {id:'edge',g:0,as:'toss',name:'Ball off a table',line:'Roll a ball off a table edge. Get its sideways speed and the fall.',D:0.96,maxRec:5,zone:'start',
+ {id:'edge',g:0,as:'toss',name:'Ball off a table',line:'Roll a ball off a table edge. Get its sideways speed and the fall.',D:0.96,maxRec:4,zone:'start',
   pos:t=>{if(t<0.364)return {x:180+220*t,y:150};const q=t-0.364;return {x:260+220*q,y:Math.min(325,150+490*q*q)};},
   tips:['Film side-on with the table edge and the floor both in view.','Give the ball a gentle push so it leaves the edge level.','Keep the roll on the table short. The fall is the part that matters.','Mark the table height for real units.']},
- {id:'jump',g:0,as:'toss',name:'Vertical jump',line:'Track a mark on the hip. Get jump height and time in the air.',D:0.61,maxRec:5,zone:'start',
+ {id:'jump',g:0,as:'toss',name:'Vertical jump',line:'Track a mark on the hip. Get jump height and time in the air.',D:0.61,maxRec:4,zone:'start',
   pos:t=>({x:320,y:230-Math.max(0,300*t-490*t*t)}),
   tips:['Stick a bright mark on the hip or waistband and tap that.','Film side-on with the feet and head both in view.','Jump straight up and land in the same spot.','Mark the jumper’s height for real units.']},
  {id:'bounce',g:0,name:'Bouncing ball',line:'Drop a ball and let it bounce. See how much height it keeps.',D:3.6,maxRec:8,zone:'start',
@@ -661,7 +662,7 @@ function drawScene(id,t,ctx,w,h,opt){
   const video=document.createElement('video');video.muted=true;video.playsInline=true;video.setAttribute('playsinline','');
   let view='home',exp=null,mode=null,W=480,H=270,trk=null,scalePts=[],markMode='obj',rec=null,busy=false,hist=[],lastData=null;
   const tries={};let stream=null,camKey=null,lastVT=-1,clip=null,override=false,lastUI=0,prev=null,cur=null,R=null,tilesDrawn=false;
-  let userPicked=false,frameNo=0,lastFile=null,chipSig='',recT0=0;
+  let userPicked=false,frameNo=0,lastFile=null,chipSig='',recT0=0,review=null,noAuto=false;
   const live={motion:0,bright:128,rot:null,grav:null};const sim={released:false,t0:0,t:0};const auto={since:0,count:0,block:false};
 
   // ---------- views and routing
@@ -709,10 +710,11 @@ function drawScene(id,t,ctx,w,h,opt){
     $('checks-sec').hidden=true;$('dock').hidden=true;$('srcrow').hidden=false;$('badge').textContent='Sample';gerr('');live.banner='';
     hint(exp.free?'This is only an example. Any single moving object works.':'This is what a good recording looks like.');}
   function stopSource(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;}
-    if(clip&&clip.url){URL.revokeObjectURL(clip.url);}clip=null;mode=null;trk=null;rec=null;scalePts=[];hist=[];override=false;sim.released=false;busy=false;userPicked=false;
+    if(clip&&clip.url){URL.revokeObjectURL(clip.url);}clip=null;review=null;$('rvwrap').hidden=true;$('b-rec').style.display='';mode=null;trk=null;rec=null;scalePts=[];hist=[];override=false;sim.released=false;busy=false;userPicked=false;
     auto.since=0;auto.count=0;auto.block=false;chipSig='';$('lenwrap').hidden=true;setMark('obj');}
   $('back').addEventListener('click',()=>go('home'));
   $('r-home').addEventListener('click',()=>go('home'));
+  $('r-pick').addEventListener('click',()=>{if(review){show('guide');enterReview(false);}});
   $('r-again').addEventListener('click',()=>{if(!exp)return;const id=exp.id;const was=R&&R.mode;const f=lastFile;openGuide(id);
     if(was==='sim')beginLive('sim');else if(was==='cam')startCam();else if(was==='clip'&&f)loadClip(f,true);});
 
@@ -726,7 +728,7 @@ function drawScene(id,t,ctx,w,h,opt){
     sctx.lineWidth=2;sctx.strokeStyle=mark;sctx.fillStyle=mark;
     if(scalePts.length){sctx.beginPath();scalePts.forEach(p=>{sctx.moveTo(p.x+5,p.y);sctx.arc(p.x,p.y,5,0,7);});sctx.stroke();
       if(scalePts.length===2){sctx.setLineDash([5,4]);sctx.beginPath();sctx.moveTo(scalePts[0].x,scalePts[0].y);sctx.lineTo(scalePts[1].x,scalePts[1].y);sctx.stroke();sctx.setLineDash([]);}}
-    const path=rec?rec.pts:(clip&&clip.path);
+    const path=mode==='review'?review.pts:(clip&&clip.path);
     if(path){sctx.lineWidth=3;sctx.lineJoin='round';sctx.beginPath();let st=false;for(const p of path){if(!p)continue;if(!st){sctx.moveTo(p.x,p.y);st=true;}else sctx.lineTo(p.x,p.y);}sctx.stroke();sctx.lineWidth=2;}
     if(trk){const o=trk.pos();if(trk.lostRun()<3){const rr=o.r0+8+(reduce?0:2*Math.sin(performance.now()/260));sctx.strokeStyle='#fff';sctx.lineWidth=4;sctx.beginPath();sctx.arc(o.x,o.y,rr,0,7);sctx.stroke();sctx.strokeStyle=mark;sctx.lineWidth=2;sctx.beginPath();sctx.arc(o.x,o.y,rr,0,7);sctx.stroke();}}
     if(rec){sctx.fillStyle='#e0332b';sctx.beginPath();sctx.arc(18,18,7,0,7);sctx.fill();}
@@ -764,6 +766,14 @@ function drawScene(id,t,ctx,w,h,opt){
         if(ok){vx=(nx-px)/(1+lostRun);vy=(ny-py)/(1+lostRun);px=nx;py=ny;lostRun=0;return {x:px,y:py};}
         lostRun++;if(lostRun<8){px+=vx;py+=vy;}return null;}};
   }
+  // a finger is not exact: move the tap to the nearby spot that differs most from the surroundings
+  function snapTap(d,p){
+    const px=(x,y)=>{const i=(Math.max(0,Math.min(H-1,Math.round(y)))*W+Math.max(0,Math.min(W-1,Math.round(x))))*4;return [d[i],d[i+1],d[i+2]];};
+    const ring=[];for(let k=0;k<20;k++){ring.push(px(p.x+32*Math.cos(k/20*6.283),p.y+32*Math.sin(k/20*6.283)));}
+    const med=[0,1,2].map(j=>median(ring.map(c=>c[j])));let best=p,bd=0;
+    for(let dy=-16;dy<=16;dy+=2)for(let dx=-16;dx<=16;dx+=2){if(dx*dx+dy*dy>256)continue;const c=px(p.x+dx,p.y+dy);const dd=Math.hypot(c[0]-med[0],c[1]-med[1],c[2]-med[2])-0.8*Math.hypot(dx,dy);if(dd>bd){bd=dd;best={x:p.x+dx,y:p.y+dy};}}
+    return bd>35?best:p;
+  }
   // find the object without a tap. Two passes: strongly coloured things, then colours that are rare in the picture
   // (a white ball on a dark wall, a dark puck on a light table). Things inside the dashed start circle are preferred.
   function autoPick(d){
@@ -796,31 +806,27 @@ function drawScene(id,t,ctx,w,h,opt){
   }
   function getScale(){if(scalePts.length===2){const m=Number($('len').value),pxd=Math.hypot(scalePts[0].x-scalePts[1].x,scalePts[0].y-scalePts[1].y);if(m>0&&pxd>=5)return {k:m/pxd,unit:'m'};}return {k:1,unit:'px'};}
   function evalChecks(){
-    const c=[];const isLive=mode==='cam'||mode==='sim';
-    let ook=false,ob='Tap the object',om=isLive?'Tap the thing you want to follow in the picture.':'Tap the thing you want to follow in the first frame.';
-    if(trk){const seen=hist.length?hist.reduce((a,b)=>a+b,0)/hist.length:1;
-      if(isLive&&seen<0.7){ob='Tap the object again';om='The app lost sight of it.';}else{ook=true;om='';}}
-    c.push({k:'object',req:true,ok:ook,b:ob,m:om});
-    if(isLive){
-      const steady=live.motion<0.12&&(mode!=='cam'||live.rot==null||live.rot<6);
-      c.push({k:'steady',req:true,ok:steady,b:'Hold the phone still',m:'Prop it against something or use a stand.'});
-      if(mode==='cam'&&live.grav){const g=Math.hypot(live.grav[0],live.grav[1],live.grav[2])||1;const fwd=Math.abs(live.grav[2])/g,roll=Math.min(Math.abs(live.grav[0]),Math.abs(live.grav[1]))/g;
-        c.push({k:'level',req:true,ok:fwd<0.3&&roll<0.15,b:fwd>=0.3?'Stand the phone upright':'Straighten the phone',m:'It should face the scene squarely.'});}
-      const b=live.bright;c.push({k:'light',req:true,ok:b>55&&b<238,b:b<=55?'More light needed':'Too bright',m:b<=55?'Turn on a light or move near a window.':'Turn away from the light source.'});
-      let fok=true;if(trk){const o=trk.pos();const mx=0.05*W,my=0.05*H;fok=!(o.x<mx||o.y<my||o.x>W-mx||o.y>H-my);}
-      c.push({k:'frame',req:true,ok:fok,b:'Move back a little',m:'The object is at the edge of the picture.'});}
+    const c=[];
+    if(mode==='clip'){c.push({k:'object',req:true,ok:!!trk,b:'Tap the object',m:'Tap the thing you want to follow in the picture.'});return c;}
+    const steady=live.motion<0.12&&(mode!=='cam'||live.rot==null||live.rot<6);
+    c.push({k:'steady',req:true,ok:steady,b:'Hold the phone still',m:'Prop it against something or use a stand.'});
+    if(mode==='cam'&&live.grav){const g=Math.hypot(live.grav[0],live.grav[1],live.grav[2])||1;const fwd=Math.abs(live.grav[2])/g,roll=Math.min(Math.abs(live.grav[0]),Math.abs(live.grav[1]))/g;
+      c.push({k:'level',req:true,ok:fwd<0.3&&roll<0.15,b:fwd>=0.3?'Stand the phone upright':'Straighten the phone',m:'It should face the scene squarely.'});}
+    const b=live.bright;c.push({k:'light',req:true,ok:b>55&&b<238,b:b<=55?'More light needed':'Too bright',m:b<=55?'Turn on a light or move near a window.':'Turn away from the light source.'});
     return c;
   }
   const RING=188.5;
   function updateChecks(){
     const req=evalChecks();const failing=req.filter(x=>!x.ok);const ready=!failing.length;const br=$('b-rec'),core=$('core');
     let frac=req.length?(req.length-failing.length)/req.length:0,title='',msg='',dis=true,cls='',lab='',any=false;
-    if(mode==='clip'){cls='clip';lab=busy?'…':'Go';dis=busy||!ready;frac=busy?(clip&&clip.prog||0):frac;
+    $('b-rec').style.display=mode==='review'?'none':'';
+    if(mode==='review'){title='Tap the object';msg='Tap the thing that moved. If it is not clear in this frame, drag the slider under the picture.';frac=1;}
+    else if(mode==='clip'){cls='clip';lab=busy?'…':'Go';dis=busy||!ready;frac=busy?(clip&&clip.prog||0):frac;
       title=busy?'Following the object':ready?'Press Go':'Tap the object';msg=busy?'':ready?'Or tap a different object first.':'Tap the thing you want to follow in the picture.';}
-    else if(rec){cls='recording';dis=false;frac=Math.min(1,(performance.now()/1000-recT0)/exp.maxRec);title=mode==='sim'?'Recording':'Recording. Let go now';msg='It stops by itself. Tap the button to stop sooner.';}
+    else if(rec){cls='recording';dis=false;frac=Math.min(1,(performance.now()/1000-recT0)/exp.maxRec);title=mode==='sim'?'Recording':'Recording. Let go now';msg='Tap the button to stop when the motion is over.';}
     else if(auto.count>0){lab=String(auto.count);dis=false;title='Starting in '+auto.count;msg='';}
-    else{dis=!ready;cls=ready?'ready':'';any=!ready&&!!trk;
-      title=ready?($('handsfree').checked&&!auto.block?'Hold still':'Press the red button'):failing[0].b;msg=ready?($('handsfree').checked&&!auto.block?'Recording starts by itself.':'Then let the object go.'):failing[0].m;}
+    else{dis=!ready;cls=ready?'ready':'';any=!ready;
+      title=ready?($('handsfree').checked&&!auto.block?'Hold still':'Press the red button'):failing[0].b;msg=ready?($('handsfree').checked&&!auto.block?'Recording starts by itself. You pick the object afterwards.':'Then let the object go.'):failing[0].m;}
     live.banner=mode==='clip'&&busy?'':title;
     br.className='recbtn '+cls;br.disabled=dis;core.textContent=lab;$('ring').setAttribute('stroke-dashoffset',String(RING*(1-frac)));
     br.setAttribute('aria-label',mode==='clip'?'Track this clip':rec?'Stop recording':'Record');
@@ -831,10 +837,11 @@ function drawScene(id,t,ctx,w,h,opt){
   $('m-scale').addEventListener('click',()=>{setMark('scale');scalePts=[];hint('Tap the two ends of something whose real length you know, then type its length.');});
   $('len').addEventListener('input',()=>updateChecks());
   stage.addEventListener('click',e=>{
-    if(mode===null||busy||rec)return;const r=stage.getBoundingClientRect();const p={x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};
+    if(mode===null||mode==='cam'||mode==='sim'&&markMode!=='scale'||busy||rec)return;const r=stage.getBoundingClientRect();const p={x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};
     if(markMode==='scale'){if(scalePts.length>=2)scalePts=[];scalePts.push(p);$('lenwrap').hidden=scalePts.length<2;if(scalePts.length===2){setMark('obj');hint('Length marked. Type the real length below.');}}
+    else if(mode==='review'){trackReview(p);return;}
     else{const d=mode==='clip'?fctx.getImageData(0,0,W,H).data:lastData;if(!d)return;userPicked=true;auto.block=false;auto.since=0;
-      try{trk=makeTracker(d,W,H,p);hist=[];gerr('');if(clip){clip.tap=p;clip.path=null;}}catch(er){trk=null;gerr(er.message);}}
+      try{const q=snapTap(d,p);trk=makeTracker(d,W,H,q);hist=[];gerr('');if(clip){clip.tap=q;clip.path=null;}}catch(er){trk=null;gerr(er.message);}}
     if(mode==='clip')redrawClip();updateChecks();});
 
   // ---------- live sources: camera and practice simulation
@@ -847,13 +854,11 @@ function drawScene(id,t,ctx,w,h,opt){
   function processLive(tsec){
     if(mode==='cam'){if(video.readyState<2)return;pctx.drawImage(video,0,0,W,H);}
     else{sim.t=sim.released?Math.max(0,tsec-sim.t0):0;drawScene(exp.id,sim.t,pctx,W,H,{shake:$('s-shake').checked,dim:$('s-dim').checked});}
-    const d=pctx.getImageData(0,0,W,H).data;lastData=d;measure(d);frameNo++;
-    if(!rec&&!userPicked&&frameNo%10===3){const seen=hist.length>=10?hist.reduce((a,b)=>a+b,0)/hist.length:1;
-      if(!trk||seen<0.3){const t=autoPick(d);if(t){trk=t;hist=[];}else if(seen<0.3)trk=null;}}
-    let p=null;if(trk){p=trk.step(d);hist.push(p?1:0);if(hist.length>12)hist.shift();}
-    if(rec){rec.t.push(tsec);rec.pts.push(p?{x:p.x,y:p.y}:null);if(live.motion>=0.12)rec.shake++;if(p)rec.found++;
-      const el=tsec-rec.t[0];
-      if((mode==='sim'&&sim.t>exp.D+0.5)||el>exp.maxRec||(rec.found>=12&&trk.lostRun()>=20)){finishLive();return;}}
+    const d=pctx.getImageData(0,0,W,H).data;lastData=d;const frac=measure(d);frameNo++;
+    if(rec){if(rec.t0===null)rec.t0=tsec;
+      if(tsec-rec.lastT>=rec.iv-0.004){rec.frames.push(d);rec.t.push(tsec);rec.lastT=tsec;}
+      rec.n++;if(frac>=0.3||(mode==='cam'&&live.rot!=null&&live.rot>10))rec.shake++;
+      if((mode==='sim'&&sim.t>exp.D+0.5)||tsec-rec.t0>exp.maxRec){finishLive();return;}}
     else{ // hands-free: steady pass, then 3-2-1, then record
       const ready=evalChecks().every(x=>!x.req||x.ok);const now=performance.now();
       if(ready&&$('handsfree').checked&&!auto.block){if(!auto.since)auto.since=now;const lead=mode==='sim'?500:1000,step=mode==='sim'?330:700;const el=now-auto.since;
@@ -884,21 +889,42 @@ function drawScene(id,t,ctx,w,h,opt){
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)camOff=true;
   function camOffUI(){camOff=true;$('b-cam').hidden=true;$('camnote').hidden=false;}
   $('b-sim').addEventListener('click',()=>{stopSource();setDims(640,360);beginLive('sim');});
-  function startRec(){if(!trk||rec)return;nctx.drawImage(proc,0,0);rec={t:[],pts:[],shake:0,found:0};recT0=performance.now()/1000;auto.count=0;if(mode==='sim'){sim.released=true;sim.t0=performance.now()/1000+0.5;}updateChecks();}
+  function startRec(){if(rec||!(mode==='cam'||mode==='sim'))return;
+    // frames are kept in memory at the working size; long recordings keep fewer frames per second so they still fit
+    const maxF=Math.max(40,Math.floor(110e6/(W*H*4)));rec={frames:[],t:[],shake:0,n:0,iv:Math.max(1/61,(mode==='sim'?Math.min(exp.maxRec,exp.D+1):exp.maxRec)/maxF),lastT:-1e9,t0:null};recT0=performance.now()/1000;auto.count=0;
+    if(mode==='sim'){sim.released=true;sim.t0=performance.now()/1000+0.5;}updateChecks();}
   $('b-rec').addEventListener('click',()=>{if(mode==='clip'){runClip();return;}if(rec)finishLive();else{auto.since=0;auto.count=0;startRec();}});
   $('b-any').addEventListener('click',()=>{override=true;startRec();});
   $('b-src').addEventListener('click',()=>{if(exp)openGuide(exp.id);});
   $('handsfree').addEventListener('change',()=>{auto.since=0;auto.count=0;auto.block=false;updateChecks();});
   function finishLive(){
     const r=rec;rec=null;sim.released=false;const wasOverride=override;override=false;auto.since=0;auto.count=0;
-    const pts=r.pts.slice(),ts=r.t.slice();let cut=0;while(pts.length&&!pts[pts.length-1]){pts.pop();ts.pop();cut++;}
-    const good=pts.filter(Boolean).length;
-    if(good<8){auto.block=true;gerr('The object was only followed for '+good+' frames. Tap it again, check it stands out from the background, and record once more.');updateChecks();return;}
-    const gate=[];const lost=pts.length-good;
-    if(r.shake>0.15*r.t.length)gate.push('The phone moved while recording, which adds false motion.');
-    if(lost>0.3*pts.length)gate.push('The object was lost in '+lost+' of '+pts.length+' frames. It may have blurred or blended into the background.');
-    if(wasOverride)gate.push('This was recorded with a check still failing.');
-    deliver(ts,pts,gate,lost,cut);
+    if(r.frames.length<8){auto.block=true;gerr('The recording was too short. Record for at least a second.');updateChecks();return;}
+    const src=mode;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;}
+    review={frames:r.frames,t:r.t,shake:r.n?r.shake/r.n:0,src,over:wasOverride,idx:0,pts:null};
+    enterReview(true);
+  }
+  // ---------- after recording: the user taps the object on a recorded frame, then it is followed both ways from there
+  function enterReview(first){mode='review';trk=null;review.pts=null;const rv=$('rv');rv.max=review.frames.length-1;rv.value=review.idx;$('rvwrap').hidden=false;
+    $('badge').textContent='Recorded';$('dock').hidden=false;$('checks-sec').hidden=false;$('simrow').hidden=true;$('srcrow').hidden=true;setMark('obj');gerr('');updateChecks();
+    if(first&&review.src==='sim'&&!noAuto){const t=autoPick(review.frames[0]);if(t){const o=t.pos();trackReview({x:o.x,y:o.y});}}}
+  $('rv').addEventListener('input',()=>{if(review){review.idx=Number($('rv').value);review.pts=null;}});
+  function drawReview(){pctx.putImageData(new ImageData(review.frames[review.idx],W,H),0,0);sctx.drawImage(proc,0,0);overlay();}
+  function trackReview(p){
+    const F=review.frames,n=F.length,k0=review.idx;let f,b;p=snapTap(F[k0],p);
+    try{f=makeTracker(F[k0],W,H,p);b=makeTracker(F[k0],W,H,p);}catch(e){gerr(e.message);return;}
+    const pts=new Array(n).fill(null);const o=f.pos();pts[k0]={x:o.x,y:o.y};
+    for(let k=k0+1;k<n;k++){const q=f.step(F[k]);pts[k]=q?{x:q.x,y:q.y}:null;}
+    for(let k=k0-1;k>=0;k--){const q=b.step(F[k]);pts[k]=q?{x:q.x,y:q.y}:null;}
+    let a=0;while(a<n&&!pts[a])a++;let z=n-1;while(z>=0&&!pts[z])z--;const good=pts.filter(Boolean).length;review.pts=pts;
+    if(good<8){gerr('The object could only be followed for '+good+' frames. Drag the slider to a frame where it is clear, then tap it again.');return;}
+    gerr('');const ts=review.t.slice(a,z+1),pp=pts.slice(a,z+1);const lost=pp.length-good;
+    nctx.putImageData(new ImageData(F[a],W,H),0,0);
+    const gate=[];
+    if(review.shake>0.15)gate.push('The phone moved while recording, which adds false motion.');
+    if(lost>0.3*pp.length)gate.push('The object was lost in '+lost+' of '+pp.length+' frames. It may have blurred or blended into the background.');
+    if(review.over)gate.push('This was recorded with a check still failing.');
+    deliver(ts,pp,gate,lost,n-1-z);
   }
 
   // ---------- clips: recorded with the phone camera app or chosen from files
@@ -966,9 +992,10 @@ function drawScene(id,t,ctx,w,h,opt){
     const T=t.map(v=>v*tMul),X=x.map(v=>v*sc.k),Y=y.map(v=>v*sc.k);
     const A=analyse(exp.as||exp.id,T,X,Y,{unit:sc.unit,px:sc.k,tUnit,sub:exp.id});
     const sn=document.createElement('canvas');sn.width=W;sn.height=H;sn.getContext('2d').drawImage(snap,0,0);
-    R={A,t:T,x:X,y:Y,unit:sc.unit,tUnit,gate,lost,cut,path:pts,mode,W,H,expId:exp.id,name:exp.name,p0,k:sc.k,snap:sn};
+    R={A,t:T,x:X,y:Y,unit:sc.unit,tUnit,gate,lost,cut,path:pts,mode:review?review.src:mode,W,H,expId:exp.id,name:exp.name,p0,k:sc.k,snap:sn};
     if(stream){stream.getTracks().forEach(s=>s.stop());stream=null;}
-    mode=null;
+    if(mode!=='review')mode=null;
+    $('r-pick').hidden=!review;
     renderResult();show('result');
     if(A.ok&&!gate.length&&!A.approx)keepResult();
   }
@@ -981,7 +1008,7 @@ function drawScene(id,t,ctx,w,h,opt){
       top==='lost'?'The object keeps being lost part-way. Use a brighter object, a plainer background and more light. 60 fps helps with fast motion.':
       'The path keeps not matching a simple law. Check the motion runs across the frame (not toward the camera) and that nothing touches the object part-way.'};}
   function whyNot(){const out=[];const A=R.A;
-    if(!A.moved)out.push('The mark stayed in one place. Make sure the moving object was selected, not the background.');
+    if(!A.moved)out.push('The mark stayed in one place. Use “Pick the object again” and tap the thing that moved.');
     else{out.push('The path was followed but it does not fit steady speed, constant acceleration, levelling off, a swing or a circle closely enough.');
       if(R.lost>3)out.push(R.lost+' frames were skipped where the object could not be seen. Motion blur is the usual cause: add light or use 60 fps.');
       out.push('Check the pink trail on the picture. If it wanders off the object, the tracker followed something else.');}
@@ -1210,6 +1237,7 @@ function drawScene(id,t,ctx,w,h,opt){
       if(view==='home')drawTiles(now);
       else if(view==='guide'&&exp){
         if(mode===null)drawSample(now);
+        else if(mode==='review')drawReview();
         else if(mode==='sim')processLive(now/1000);
         else if(mode==='cam'&&!camKey){if(video.currentTime!==lastVT){lastVT=video.currentTime;processLive(video.currentTime);}}
       }else if(view==='result'&&R&&R.A.ok&&$('pt')&&!$('resmain').hidden){
@@ -1220,7 +1248,7 @@ function drawScene(id,t,ctx,w,h,opt){
   }
   window.addEventListener('resize',()=>{if(view==='result'&&R&&R.A.ok&&tab==='graphs')drawPlots();});
   route();runTable();requestAnimationFrame(tick);
-  window.__mfl={get R(){return R;},get mode(){return mode;},get t(){return tNow;}};
+  window.__mfl={get R(){return R;},get mode(){return mode;},get t(){return tNow;},set noAuto(v){noAuto=v;}};
 })();
 
 </script>
